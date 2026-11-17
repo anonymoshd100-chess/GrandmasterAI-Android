@@ -30,6 +30,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
 
+      - name: Install Android SDK
+        run: |
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
+
       - name: Arrange Android project
         run: |
           mkdir -p app/src/main/java/com/grandmasterai/app
@@ -39,10 +45,30 @@ jobs:
           mv AndroidManifest.xml app/src/main/
           mv app.js index.html openings.js style.css app/src/main/assets/
 
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = 'GrandmasterAI'
+          include ':app'
+          EOF
+
           cat > app/build.gradle <<'EOF'
           plugins {
-              id 'com.android.application'
-              version '8.7.3'
+              id 'com.android.application' version '8.7.3'
           }
 
           android {
@@ -59,11 +85,8 @@ jobs:
           }
           EOF
 
-      - name: Install Android SDK
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
-
       - name: Build APK
-        run: gradle assembleDebug
+        run: gradle --no-daemon assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
